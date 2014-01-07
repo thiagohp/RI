@@ -18,19 +18,24 @@
 package org.jsr107.ri.annotations.tapestryioc;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.regex.Pattern;
 
 import javax.cache.annotation.CacheKeyGenerator;
 import javax.cache.annotation.CacheResolverFactory;
 import javax.inject.Singleton;
 
 import org.apache.tapestry5.ioc.ObjectLocator;
+import org.apache.tapestry5.ioc.internal.services.PlasticProxyFactoryImpl;
 import org.apache.tapestry5.plastic.MethodInvocation;
 import org.jsr107.ri.annotations.AbstractCacheLookupUtil;
 import org.jsr107.ri.annotations.InternalCacheInvocationContext;
 import org.jsr107.ri.annotations.InternalCacheKeyInvocationContext;
 import org.jsr107.ri.annotations.StaticCacheInvocationContext;
 import org.jsr107.ri.annotations.StaticCacheKeyInvocationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Adapted to Tapestry-IoC from the Guice implementation.
@@ -39,7 +44,11 @@ import org.jsr107.ri.annotations.StaticCacheKeyInvocationContext;
  */
 @Singleton
 public class CacheLookupUtil extends AbstractCacheLookupUtil<MethodInvocation> {
+    
+  private static final Logger LOGGER = LoggerFactory.getLogger(CacheLookupUtil.class);
 
+  private static final Pattern SERVICE_PROXY_CLASS_NAME = Pattern.compile("\\$.+_[a-f0-9]+");
+  
   private final ObjectLocator objectLocator;
   private final CacheKeyGenerator defaultCacheKeyGenerator;
   private final CacheResolverFactory defaultCacheResolverFactory;
@@ -73,12 +82,59 @@ public class CacheLookupUtil extends AbstractCacheLookupUtil<MethodInvocation> {
 
   @Override
   protected Class<?> getTargetClass(MethodInvocation invocation) {
-    return invocation.getInstance().getClass();
+    final Object instance = invocation.getInstance();
+    Class<?> clasz = instance.getClass();
+    // Here be dragons . . .
+    if (SERVICE_PROXY_CLASS_NAME.matcher(clasz.getName()).matches()) {
+      clasz = getDelegateType(instance);
+    }
+    return clasz;
+  }
+
+  // Here be bigger dragons . . .
+  private Class<?> getDelegateType(Object instance) {
+    Object delegate = instance;
+    Class<?> clasz = delegate.getClass();
+    if (SERVICE_PROXY_CLASS_NAME.matcher(clasz.getName()).matches()) {
+      try {
+        delegate = getDelegate(delegate, clasz);
+        // More than one advice causes proxies to be nested
+        clasz = getDelegateType(delegate);  
+      } catch (Exception e) {
+        LOGGER.error("Exception while getting service implementation type", e);
+        throw new RuntimeException("Exception while getting service implementation type", e);
+      }
+    }
+    return clasz;
+  }
+
+  private Object getDelegate(Object instance, Class<?> clasz) throws IllegalAccessException, InvocationTargetException {
+    try {
+      return clasz.getDeclaredMethod(PlasticProxyFactoryImpl.INTERNAL_GET_DELEGATE).invoke(instance);
+    } catch (Exception e) {
+      throw new RuntimeException(
+        String.format("Couldn't find method %s in %s", 
+          PlasticProxyFactoryImpl.INTERNAL_GET_DELEGATE, instance.getClass().getName()));
+    }
   }
 
   @Override
   protected Method getMethod(MethodInvocation invocation) {
-    return invocation.getMethod();
+    Method method = invocation.getMethod();
+    final Class<?> methodClass = method.getClass();
+    final Class<?> targetClass = getTargetClass(invocation);
+    if (methodClass != targetClass) {
+      method = findMethod(method, targetClass);
+    }
+    return method;
+  }
+
+  private Method findMethod(final Method method, final Class<?> targetClass) {
+    try {
+      return targetClass.getMethod(method.getName(), (Class<?>[]) method.getParameterTypes());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

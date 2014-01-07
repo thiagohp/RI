@@ -17,6 +17,7 @@
         <module>cache-annotations-ri-common</module>
         <module>cache-annotations-ri-spring</module>
         <module>cache-annotations-ri-guice</module>
+        <module>cache-annotations-ri-tapestry-ioc</module>
     </modules>
 
     <build>

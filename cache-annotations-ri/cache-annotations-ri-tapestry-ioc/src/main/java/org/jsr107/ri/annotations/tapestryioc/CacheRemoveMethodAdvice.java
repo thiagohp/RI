@@ -26,13 +26,13 @@ import org.jsr107.ri.annotations.InterceptorType;
  * @author Thiago H. de Paula Figueiredo (http://machina.com.br/thiago)
  * @version $Revision$
  */
-public class CacheRemoveEntryMethodAdvice extends AbstractCacheRemoveEntryInterceptor<MethodInvocation>
+public class CacheRemoveMethodAdvice extends AbstractCacheRemoveEntryInterceptor<MethodInvocation>
     implements CacheMethodAdvice {
 
   private final CacheContextSource<MethodInvocation> cacheContextSource;
 
   /** Single constructor of this class. */
-  public CacheRemoveEntryMethodAdvice(CacheContextSource<MethodInvocation> cacheContextSource) {
+  public CacheRemoveMethodAdvice(CacheContextSource<MethodInvocation> cacheContextSource) {
     this.cacheContextSource = cacheContextSource;
   }
 

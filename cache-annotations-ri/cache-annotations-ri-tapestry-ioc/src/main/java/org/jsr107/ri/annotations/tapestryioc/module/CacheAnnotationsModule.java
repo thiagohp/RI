@@ -22,8 +22,8 @@ import java.lang.reflect.Method;
 
 import javax.cache.annotation.CacheKeyGenerator;
 import javax.cache.annotation.CachePut;
+import javax.cache.annotation.CacheRemove;
 import javax.cache.annotation.CacheRemoveAll;
-import javax.cache.annotation.CacheRemoveEntry;
 import javax.cache.annotation.CacheResolverFactory;
 import javax.cache.annotation.CacheResult;
 
@@ -38,7 +38,7 @@ import org.jsr107.ri.annotations.tapestryioc.CacheLookupUtil;
 import org.jsr107.ri.annotations.tapestryioc.CacheMethodAdvice;
 import org.jsr107.ri.annotations.tapestryioc.CachePutMethodAdvice;
 import org.jsr107.ri.annotations.tapestryioc.CacheRemoveAllMethodAdvice;
-import org.jsr107.ri.annotations.tapestryioc.CacheRemoveEntryMethodAdvice;
+import org.jsr107.ri.annotations.tapestryioc.CacheRemoveMethodAdvice;
 import org.jsr107.ri.annotations.tapestryioc.CacheResultMethodAdvice;
 
 /**
@@ -70,7 +70,7 @@ public final class CacheAnnotationsModule {
   public static void advise(MethodAdviceReceiver receiver, ObjectLocator objectLocator) {
     advise(CachePut.class, objectLocator.autobuild(CachePutMethodAdvice.class), receiver);
     advise(CacheRemoveAll.class, objectLocator.autobuild(CacheRemoveAllMethodAdvice.class), receiver);
-    advise(CacheRemoveEntry.class, objectLocator.autobuild(CacheRemoveEntryMethodAdvice.class), receiver);
+    advise(CacheRemove.class, objectLocator.autobuild(CacheRemoveMethodAdvice.class), receiver);
     advise(CacheResult.class, objectLocator.autobuild(CacheResultMethodAdvice.class), receiver);
   }
   
